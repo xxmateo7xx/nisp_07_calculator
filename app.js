@@ -1,79 +1,116 @@
-// Pobieramy elementy z naszego HTML
 const display = document.getElementById('display');
-const numbers = document.querySelectorAll('.number');
-const btnAdd = document.getElementById('btn-add');
-const btnEqual = document.getElementById('btn-equal');
-const btnClear = document.getElementById('btn-clear');
+const buttons = document.querySelectorAll('.btn');
 
-// Zmienne do przechowywania wpisywanych wartości
-let currentInput = '';
-let previousInput = '';
-let operator = '';
+// Zmienna trzymająca całe równanie (np. "2+3*(4-1)")
+let expression = '';
 
-// 1. Podpinamy nasłuchiwanie kliknięć pod wszystkie przyciski z cyframi
-numbers.forEach(button => {
+// Słownik priorytetów operatorów dla algorytmu Shunting-yard
+const precedence = {
+    '+': 1,
+    '-': 1,
+    '*': 2,
+    '/': 2
+};
+
+// 1. Podpinamy kliknięcia pod wszystkie przyciski
+buttons.forEach(button => {
     button.addEventListener('click', () => {
-        // Zabezpieczenie: nie pozwalamy wpisać kilku zer na początku
-        if (currentInput === '0' && button.innerText === '0') return;
-        
-        // Dodajemy klikniętą cyfrę do aktualnego ciągu i wyświetlamy na ekranie
-        currentInput += button.innerText;
-        display.innerText = currentInput;
+        const val = button.innerText;
+
+        if (val === 'C') {
+            expression = '';
+            display.innerText = '0';
+        } else if (val === '=') {
+            try {
+                // Odpalamy całą magię ONP
+                const tokens = tokenize(expression);
+                const rpn = infixToRPN(tokens);
+                const result = evaluateRPN(rpn);
+                
+                display.innerText = result;
+                expression = result.toString(); // Wynik staje się nowym początkiem
+            } catch (error) {
+                display.innerText = 'Błąd';
+                expression = '';
+            }
+        } else {
+            // Dodajemy znak do równania
+            if (expression === '0') expression = '';
+            expression += val;
+            display.innerText = expression;
+        }
     });
 });
 
-// 2. Podpinamy funkcję DODAWANIA pod przycisk "+"
-btnAdd.addEventListener('click', () => {
-    // Jeśli nic nie wpisano, nie robimy nic
-    if (currentInput === '') return;
-    
-    // Przenosimy aktualną liczbę do pamięci, czyścimy ekran i ustawiamy operator na "+"
-    previousInput = currentInput;
-    currentInput = '';
-    operator = '+';
-});
+// --- LOGIKA ONP (Odwrotna Notacja Polska) ---
 
-// Zaktualizowana funkcja obliczania pod przyciskiem "="
-btnEqual.addEventListener('click', () => {
-    // Sprawdzamy, czy mamy obie liczby do działania
-    if (currentInput === '' || previousInput === '') return;
-    
-    let result;
-    const prev = parseFloat(previousInput);
-    const current = parseFloat(currentInput);
-    
-    // Sprawdzamy jaki operator został wybrany
-    if (operator === '+') {
-        result = prev + current;
-    } else if (operator === '-') {
-        result = prev - current;
+// Funkcja 1: Rozbija tekst "2+23" na tablicę ["2", "+", "23"]
+function tokenize(expr) {
+    // Używamy Regexa do wyłapania liczb (nawet wielocyfrowych) i operatorów
+    const tokens = expr.match(/\d+|\+|\-|\*|\/|\(|\)/g);
+    return tokens || [];
+}
+
+// Funkcja 2: Algorytm Shunting-yard (zamienia tradycyjny zapis na ONP)
+function infixToRPN(tokens) {
+    const outputQueue = [];
+    const operatorStack = [];
+
+    for (let token of tokens) {
+        if (!isNaN(token)) {
+            // Jeśli to liczba, idzie prosto do wyjścia
+            outputQueue.push(token);
+        } else if (token === '(') {
+            operatorStack.push(token);
+        } else if (token === ')') {
+            // Wyrzucamy operatory z wężyka aż trafimy na lewy nawias
+            while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1] !== '(') {
+                outputQueue.push(operatorStack.pop());
+            }
+            operatorStack.pop(); // Usuwamy lewy nawias ze stosu
+        } else {
+            // Jeśli to operator (+, -, *, /)
+            while (
+                operatorStack.length > 0 &&
+                operatorStack[operatorStack.length - 1] !== '(' &&
+                precedence[operatorStack[operatorStack.length - 1]] >= precedence[token]
+            ) {
+                outputQueue.push(operatorStack.pop());
+            }
+            operatorStack.push(token);
+        }
     }
-    
-    // Aktualizujemy zmienne i wyświetlamy wynik
-    currentInput = result.toString();
-    display.innerText = currentInput;
-    previousInput = '';
-    operator = '';
-});
 
-// 4. Podpinamy czyszczenie kalkulatora pod przycisk "C"
-btnClear.addEventListener('click', () => {
-    currentInput = '';
-    previousInput = '';
-    operator = '';
-    display.innerText = '0';
-});
+    // Wrzucamy resztę operatorów na wyjście
+    while (operatorStack.length > 0) {
+        outputQueue.push(operatorStack.pop());
+    }
 
-// Pobieramy przycisk odejmowania
-const btnSub = document.getElementById('btn-sub');
+    return outputQueue;
+}
 
-// Podpinamy funkcję ODEJMOWANIA pod przycisk "-"
-btnSub.addEventListener('click', () => {
-    // Jeśli nic nie wpisano, nie robimy nic
-    if (currentInput === '') return;
-    
-    // Przenosimy aktualną liczbę do pamięci, czyścimy ekran i ustawiamy operator na "-"
-    previousInput = currentInput;
-    currentInput = '';
-    operator = '-';
-});
+// Funkcja 3: Oblicza wynik ze stosu ONP
+function evaluateRPN(rpnQueue) {
+    const stack = [];
+
+    for (let token of rpnQueue) {
+        if (!isNaN(token)) {
+            // Liczby wrzucamy na stos
+            stack.push(parseFloat(token));
+        } else {
+            // Operator pobiera dwie ostatnie liczby ze stosu i wykonuje działanie
+            const b = stack.pop();
+            const a = stack.pop();
+
+            if (token === '+') stack.push(a + b);
+            if (token === '-') stack.push(a - b);
+            if (token === '*') stack.push(a * b);
+            if (token === '/') {
+                if (b === 0) throw new Error("Dzielenie przez 0");
+                stack.push(a / b);
+            }
+        }
+    }
+
+    return stack[0]; // Na koniec na stosie zostaje tylko wynik
+}
