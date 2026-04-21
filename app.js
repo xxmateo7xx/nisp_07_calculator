@@ -33,7 +33,7 @@ btnAdd.addEventListener('click', () => {
     operator = '+';
 });
 
-// Zaktualizowana funkcja obliczania pod przyciskiem "="
+// OSTATECZNA funkcja obliczania pod przyciskiem "="
 btnEqual.addEventListener('click', () => {
     // Sprawdzamy, czy mamy obie liczby do działania
     if (currentInput === '' || previousInput === '') return;
@@ -42,11 +42,23 @@ btnEqual.addEventListener('click', () => {
     const prev = parseFloat(previousInput);
     const current = parseFloat(currentInput);
     
-    // Sprawdzamy jaki operator został wybrany
+    // Wykonujemy odpowiednie działanie na podstawie wybranego operatora
     if (operator === '+') {
         result = prev + current;
     } else if (operator === '-') {
         result = prev - current;
+    } else if (operator === '*') {
+        result = prev * current;
+    } else if (operator === '/') {
+        // Zabezpieczenie przed dzieleniem przez zero!
+        if (current === 0) {
+            display.innerText = "Błąd";
+            currentInput = '';
+            previousInput = '';
+            operator = '';
+            return; // Przerywamy działanie funkcji
+        }
+        result = prev / current;
     }
     
     // Aktualizujemy zmienne i wyświetlamy wynik
@@ -76,4 +88,24 @@ btnSub.addEventListener('click', () => {
     previousInput = currentInput;
     currentInput = '';
     operator = '-';
+});
+
+// Pobieramy przyciski mnożenia i dzielenia
+const btnMul = document.getElementById('btn-mul');
+const btnDiv = document.getElementById('btn-div');
+
+// Podpinamy MNOŻENIE pod przycisk "*"
+btnMul.addEventListener('click', () => {
+    if (currentInput === '') return;
+    previousInput = currentInput;
+    currentInput = '';
+    operator = '*';
+});
+
+// Podpinamy DZIELENIE pod przycisk "/"
+btnDiv.addEventListener('click', () => {
+    if (currentInput === '') return;
+    previousInput = currentInput;
+    currentInput = '';
+    operator = '/';
 });
