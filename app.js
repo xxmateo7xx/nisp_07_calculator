@@ -33,22 +33,27 @@ btnAdd.addEventListener('click', () => {
     operator = '+';
 });
 
-// 3. Podpinamy funkcję obliczania pod przycisk "="
+// Zaktualizowana funkcja obliczania pod przyciskiem "="
 btnEqual.addEventListener('click', () => {
-    // Sprawdzamy, czy mamy obie liczby do dodania
+    // Sprawdzamy, czy mamy obie liczby do działania
     if (currentInput === '' || previousInput === '') return;
     
-    // Jeśli wybranym operatorem jest dodawanie, wykonujemy działanie
+    let result;
+    const prev = parseFloat(previousInput);
+    const current = parseFloat(currentInput);
+    
+    // Sprawdzamy jaki operator został wybrany
     if (operator === '+') {
-        // Używamy parseFloat, by zamienić tekst na liczby, a następnie je dodajemy
-        const result = parseFloat(previousInput) + parseFloat(currentInput);
-        
-        // Aktualizujemy zmienne i wyświetlamy wynik
-        currentInput = result.toString();
-        display.innerText = currentInput;
-        previousInput = '';
-        operator = '';
+        result = prev + current;
+    } else if (operator === '-') {
+        result = prev - current;
     }
+    
+    // Aktualizujemy zmienne i wyświetlamy wynik
+    currentInput = result.toString();
+    display.innerText = currentInput;
+    previousInput = '';
+    operator = '';
 });
 
 // 4. Podpinamy czyszczenie kalkulatora pod przycisk "C"
@@ -57,4 +62,18 @@ btnClear.addEventListener('click', () => {
     previousInput = '';
     operator = '';
     display.innerText = '0';
+});
+
+// Pobieramy przycisk odejmowania
+const btnSub = document.getElementById('btn-sub');
+
+// Podpinamy funkcję ODEJMOWANIA pod przycisk "-"
+btnSub.addEventListener('click', () => {
+    // Jeśli nic nie wpisano, nie robimy nic
+    if (currentInput === '') return;
+    
+    // Przenosimy aktualną liczbę do pamięci, czyścimy ekran i ustawiamy operator na "-"
+    previousInput = currentInput;
+    currentInput = '';
+    operator = '-';
 });
